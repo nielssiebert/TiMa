@@ -28,7 +28,7 @@
     - local dev profile via env vars
     - production profile via env vars (for deploying to nginx)
     - app config env vars:
-        - `VITE_APP_TITLE` (default `Letrain`)
+        - `VITE_APP_TITLE` (default `TiMa`)
         - `VITE_APP_PROFILE` (`local` or `production`, default `local`)
         - `VITE_API_BASE_URL` (default `/api`)
         - `VITE_OVERVIEW_REFRESH_DEFAULT_MS` (default `5000`)
