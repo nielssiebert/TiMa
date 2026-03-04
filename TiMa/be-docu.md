@@ -234,7 +234,6 @@ Input Validations:
 - Backend API URL prefix is configurable via `API_URL_PREFIX` (default `/api`).
 - This allows prefixed deployments behind one shared nginx host/port (for example `/tima/api`).
 - CORS path matching follows the configured `API_URL_PREFIX`.
-- Translation term replacements (for example `ExecutionEvent` to `Valve`) are handled in deployment frontend build steps and do not change backend API contracts.
 
 
 ## Event Interface
@@ -271,6 +270,7 @@ containing:
 ## Change notes
 - App naming is standardized to `TiMa`/`tima` in backend defaults.
 - Updated defaults include app name, auth realm, SQLite file name, MQTT client id, and MQTT topic prefixes.
+- Installer deployment now supports Docker Compose fallback: it uses `docker compose` when available and automatically falls back to `docker-compose`.
 - deleted messages should be produced if the Factor is being deleted. 
 containing:
     - message id

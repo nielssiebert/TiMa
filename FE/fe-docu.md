@@ -202,6 +202,7 @@
 ## Change notes
 - Backend app naming is standardized to `TiMa`/`tima`.
 - Frontend integrations should use backend defaults and topic/config values based on the `tima` prefix.
+- Installer deployment now supports Docker Compose fallback: it uses `docker compose` when available and automatically falls back to `docker-compose`.
 
 ## Deployment additions
 - `index.html` title now uses Vite env replacement via `%VITE_APP_TITLE%`.

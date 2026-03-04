@@ -3,6 +3,7 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_COMMAND=()
 
 log() {
   printf '[install] %s\n' "$1"
@@ -52,9 +53,11 @@ prompt_yes_no() {
   local key="$1"
   local default_value="$2"
   local input
+  local normalized
   read -r -p "$key [$default_value]: " input
   input="${input:-$default_value}"
-  case "${input,,}" in
+  normalized="$(printf '%s' "$input" | tr '[:upper:]' '[:lower:]')"
+  case "$normalized" in
     y|yes) printf 'yes\n' ;;
     n|no) printf 'no\n' ;;
     *) die "Invalid answer for '$key'. Use yes or no." ;;
@@ -124,8 +127,22 @@ ensure_python3() {
   run_root apt-get install -y python3
 }
 
+detect_compose_command() {
+  if docker compose version >/dev/null 2>&1; then
+    COMPOSE_COMMAND=(docker compose)
+    return
+  fi
+
+  if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_COMMAND=(docker-compose)
+    return
+  fi
+
+  die "Neither 'docker compose' nor 'docker-compose' is available. Install Docker Compose and retry."
+}
+
 compose_cmd() {
-  docker compose -p "$STACK_NAME" --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" "$@"
+  "${COMPOSE_COMMAND[@]}" -p "$STACK_NAME" --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
 render_template() {
@@ -344,10 +361,7 @@ main() {
   ensure_git
   ensure_docker
   require_command docker
-
-  if ! docker compose version >/dev/null 2>&1; then
-    die "docker compose plugin is required but not available."
-  fi
+  detect_compose_command
 
   local default_repo_url
   default_repo_url="https://github.com/niels/TiMa.git"
