@@ -1,0 +1,36 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: current file",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "python": "${workspaceFolder}/TiMa/.venv/bin/python",
+            "cwd": "${workspaceFolder}/TiMa",
+            "console": "integratedTerminal",
+            "autoStartBrowser": false,
+            "justMyCode": true
+        },
+        {
+            "name": "Python Debugger: TiMa API",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/TiMa/.venv/bin/python",
+            "program": "${workspaceFolder}/TiMa/run.py",
+            "cwd": "${workspaceFolder}/TiMa",
+            "env": {
+                "BASIC_AUTH_ENABLED": "true",
+                "MQTT_ENABLED": "true",
+                "PORT": "5500"
+            },
+            "console": "integratedTerminal",
+            "jinja": true,
+            "autoStartBrowser": false,
+            "justMyCode": true
+        }
+    ]
+}

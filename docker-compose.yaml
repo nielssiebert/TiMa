@@ -1,0 +1,15 @@
+# colima start --cpu 4 --memory 2 --disk 30 --runtime docker
+#brew services start colima
+#brew services stop colima
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    hostname: mosquitto
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto:/etc/mosquitto
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
