@@ -26,7 +26,7 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 }
 
 export const appConfig: AppConfig = {
-  appTitle: import.meta.env.VITE_APP_TITLE ?? 'Letrain',
+  appTitle: import.meta.env.VITE_APP_TITLE ?? 'TiMa',
   profile: resolveProfile(),
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '/api',
   overviewRefreshMs: {

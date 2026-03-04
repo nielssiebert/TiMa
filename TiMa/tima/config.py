@@ -14,6 +14,18 @@ def _get_env_tuple(name: str, default: str) -> tuple[str, ...]:
     return tuple(item.strip() for item in value.split(",") if item.strip())
 
 
+def _normalize_api_prefix(value: str | None) -> str:
+    if value is None:
+        return "/api"
+    trimmed = value.strip()
+    if not trimmed:
+        return "/api"
+    if trimmed == "/":
+        return "/"
+    prefixed = trimmed if trimmed.startswith("/") else f"/{trimmed}"
+    return prefixed.rstrip("/")
+
+
 @dataclass(frozen=True)
 class Config:
     # Core
@@ -56,6 +68,9 @@ class Config:
 
     # Message retention in days
     MESSAGE_RETENTION_DAYS: int = int(_get_env("MESSAGE_RETENTION_DAYS", "30"))
+
+    # API
+    API_URL_PREFIX: str = _normalize_api_prefix(_get_env("API_URL_PREFIX", "/api"))
 
     # CORS
     CORS_ALLOWED_ORIGINS: tuple[str, ...] = _get_env_tuple(

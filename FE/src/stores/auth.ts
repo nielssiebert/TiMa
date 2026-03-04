@@ -13,7 +13,7 @@ interface AuthSession {
   confirmed: boolean
 }
 
-const STORAGE_KEY = 'letrain.auth.session'
+const STORAGE_KEY = 'tima.auth.session'
 
 function readSession(): AuthSession | null {
   const raw = localStorage.getItem(STORAGE_KEY)

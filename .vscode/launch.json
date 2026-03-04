@@ -23,6 +23,7 @@
             "program": "${workspaceFolder}/TiMa/run.py",
             "cwd": "${workspaceFolder}/TiMa",
             "env": {
+                "VITE_APP_TITLE": "TiMa",
                 "BASIC_AUTH_ENABLED": "true",
                 "MQTT_ENABLED": "true",
                 "PORT": "5500"

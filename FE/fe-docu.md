@@ -10,7 +10,7 @@
         - User
     - menu should always be open, if there are more than 820px in with and not on a smartphone
     - if opened on a small screen the menu can be opened and close via a burger menu icon at the top left of screen
-- the title of the app is Letrain
+- the title of the app is TiMa
 - if one entity of the menu options is clicked, an overview is presented with a list of all available items. At the top of the list, there is a plus icon to add a new instance of the entity.
 - if one of the existing items in the overview is clicked you enter a maintenance page for the respective entity.
 - maintenance pages have a cancel and a save button.
@@ -202,5 +202,14 @@
 ## Change notes
 - Backend app naming is standardized to `TiMa`/`tima`.
 - Frontend integrations should use backend defaults and topic/config values based on the `tima` prefix.
+
+## Deployment additions
+- `index.html` title now uses Vite env replacement via `%VITE_APP_TITLE%`.
+- Frontend public base path supports deployment behind a reverse-proxy prefix:
+    - env var: `VITE_PUBLIC_BASE_PATH` (default `/`)
+    - examples:
+        - `/` for root deployment
+        - `/tima/` for prefixed deployment
+- API base URL remains configurable via `VITE_API_BASE_URL` and should match reverse-proxy API path (for example `/tima/api`).
 
 

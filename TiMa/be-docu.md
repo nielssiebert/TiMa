@@ -229,6 +229,12 @@ Input Validations:
 - User management endpoints (`GET /api/users`, `POST /api/users/{id}/confirm`, `POST /api/users/change_password`) require authenticated and confirmed users.
 - Via the config `BASIC_AUTH_ENABLED` it can be globally activated or deactivated.
 
+## Deployment additions
+
+- Backend API URL prefix is configurable via `API_URL_PREFIX` (default `/api`).
+- This allows prefixed deployments behind one shared nginx host/port (for example `/tima/api`).
+- CORS path matching follows the configured `API_URL_PREFIX`.
+
 
 ## Event Interface
 
