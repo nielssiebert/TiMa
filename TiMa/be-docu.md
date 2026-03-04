@@ -234,6 +234,7 @@ Input Validations:
 - Backend API URL prefix is configurable via `API_URL_PREFIX` (default `/api`).
 - This allows prefixed deployments behind one shared nginx host/port (for example `/tima/api`).
 - CORS path matching follows the configured `API_URL_PREFIX`.
+- Translation term replacements (for example `ExecutionEvent` to `Valve`) are handled in deployment frontend build steps and do not change backend API contracts.
 
 
 ## Event Interface
