@@ -64,7 +64,7 @@ class Config:
     )
 
     # Scheduler
-    SCHEDULER_TICK_SECONDS: int = int(_get_env("SCHEDULER_TICK_SECONDS", "1"))
+    SCHEDULER_TICK_SECONDS: int = int(_get_env("SCHEDULER_TICK_SECONDS", "30"))
 
     # Message retention in days
     MESSAGE_RETENTION_DAYS: int = int(_get_env("MESSAGE_RETENTION_DAYS", "30"))
@@ -74,6 +74,5 @@ class Config:
 
     # CORS
     CORS_ALLOWED_ORIGINS: tuple[str, ...] = _get_env_tuple(
-        "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://192.168.178.123:5173," \
-        "http://localhost,http://192.168.178.123"
+        "CORS_ALLOWED_ORIGINS", "http://0.0.0.0"
     )

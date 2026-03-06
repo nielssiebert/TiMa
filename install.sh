@@ -4,6 +4,7 @@ IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_COMMAND=()
+COMPOSE_OVERRIDE_FILE=""
 
 log() {
   printf '[install] %s\n' "$1"
@@ -64,6 +65,20 @@ prompt_yes_no() {
   esac
 }
 
+prompt_bool_env() {
+  local key="$1"
+  local current_value="$2"
+  local default_answer="no"
+  if [[ "$current_value" == "true" ]]; then
+    default_answer="yes"
+  fi
+  if [[ "$(prompt_yes_no "$key" "$default_answer")" == "yes" ]]; then
+    printf 'true\n'
+    return
+  fi
+  printf 'false\n'
+}
+
 normalize_path_prefix() {
   local raw="$1"
   if [[ -z "$raw" || "$raw" == "/" ]]; then
@@ -76,6 +91,17 @@ normalize_path_prefix() {
   fi
   prefixed="${prefixed%/}"
   printf '%s\n' "$prefixed"
+}
+
+normalize_frontend_public_base() {
+  local raw="$1"
+  local normalized
+  normalized="$(normalize_path_prefix "$raw")"
+  if [[ "$normalized" == "/" ]]; then
+    printf '/\n'
+    return
+  fi
+  printf '%s/\n' "$normalized"
 }
 
 build_api_prefix() {
@@ -94,9 +120,22 @@ require_command() {
   fi
 }
 
+ensure_docker_autostart() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    warn "systemctl not available; cannot configure Docker auto-start on boot automatically."
+    return
+  fi
+
+  log "Ensuring Docker service is enabled and started on boot."
+  if ! run_root systemctl enable --now docker; then
+    die "Failed to enable/start docker service."
+  fi
+}
+
 ensure_docker() {
   if command -v docker >/dev/null 2>&1; then
     log "Docker CLI already available. Skipping Docker installation."
+    ensure_docker_autostart
     return
   fi
 
@@ -105,7 +144,7 @@ ensure_docker() {
   run_root apt-get install -y ca-certificates curl gnupg lsb-release git
   curl -fsSL https://get.docker.com | run_root sh
   run_root apt-get install -y docker-compose-plugin
-  run_root systemctl enable --now docker
+  ensure_docker_autostart
   warn "If your user is not in the docker group yet, run: sudo usermod -aG docker $USER and log in again."
 }
 
@@ -142,7 +181,150 @@ detect_compose_command() {
 }
 
 compose_cmd() {
+  if [[ -n "${COMPOSE_OVERRIDE_FILE}" && -f "$COMPOSE_OVERRIDE_FILE" ]]; then
+    "${COMPOSE_COMMAND[@]}" -p "$STACK_NAME" --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE_FILE" "$@"
+    return
+  fi
   "${COMPOSE_COMMAND[@]}" -p "$STACK_NAME" --env-file "$DEPLOY_ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+read_env_file_value() {
+  local file_path="$1"
+  local key="$2"
+  local default_value="$3"
+  if [[ ! -f "$file_path" ]]; then
+    printf '%s\n' "$default_value"
+    return
+  fi
+
+  local value
+  value="$(grep -E "^${key}=" "$file_path" | tail -n 1 | cut -d'=' -f2- || true)"
+  if [[ -z "$value" ]]; then
+    printf '%s\n' "$default_value"
+    return
+  fi
+  printf '%s\n' "$value"
+}
+
+yaml_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  printf '%s\n' "$value"
+}
+
+initialize_env_settings() {
+  local fe_env_file="$REPO_DIR/FE/.env.production"
+
+  FRONTEND_APP_TITLE="$(read_env_file_value "$fe_env_file" "VITE_APP_TITLE" "$APP_TITLE")"
+  FRONTEND_APP_PROFILE="$(read_env_file_value "$fe_env_file" "VITE_APP_PROFILE" "production")"
+  FRONTEND_PUBLIC_BASE_PATH="$(normalize_frontend_public_base "$(read_env_file_value "$fe_env_file" "VITE_PUBLIC_BASE_PATH" "$FRONTEND_BASE_PATH")")"
+  FRONTEND_API_BASE_URL="$(read_env_file_value "$fe_env_file" "VITE_API_BASE_URL" "$API_URL_PREFIX")"
+  FRONTEND_OVERVIEW_REFRESH_DEFAULT_MS="$(read_env_file_value "$fe_env_file" "VITE_OVERVIEW_REFRESH_DEFAULT_MS" "60000")"
+  FRONTEND_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS="$(read_env_file_value "$fe_env_file" "VITE_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS" "60000")"
+  FRONTEND_OVERVIEW_REFRESH_SEQUENCES_MS="$(read_env_file_value "$fe_env_file" "VITE_OVERVIEW_REFRESH_SEQUENCES_MS" "60000")"
+
+  BACKEND_APP_NAME="$FRONTEND_APP_TITLE"
+  BACKEND_DATABASE_URL="sqlite:////data/tima.sqlite"
+  BACKEND_DB_PATH="/data/tima.sqlite"
+  BACKEND_MQTT_BROKER_HOST="mosquitto"
+  BACKEND_MQTT_BROKER_PORT="1883"
+  BACKEND_API_URL_PREFIX="$API_URL_PREFIX"
+  BACKEND_CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS"
+  BACKEND_BASIC_AUTH_ENABLED="true"
+  BACKEND_FLASK_ENV="production"
+  BACKEND_MQTT_ENABLED="true"
+  BACKEND_SCHEDULER_ENABLED="true"
+  BACKEND_SCHEDULER_TICK_SECONDS="30"
+  BACKEND_MESSAGE_RETENTION_DAYS="30"
+  BACKEND_SECRET_KEY="change-me"
+}
+
+print_env_settings() {
+  printf '\n'
+  printf 'Frontend environment variables:\n'
+  printf '  %-45s %s\n' 'VITE_APP_TITLE' "$FRONTEND_APP_TITLE"
+  printf '  %-45s %s\n' 'VITE_APP_PROFILE' "$FRONTEND_APP_PROFILE"
+  printf '  %-45s %s\n' 'VITE_PUBLIC_BASE_PATH' "$FRONTEND_PUBLIC_BASE_PATH"
+  printf '  %-45s %s\n' 'VITE_API_BASE_URL' "$FRONTEND_API_BASE_URL"
+  printf '  %-45s %s\n' 'VITE_OVERVIEW_REFRESH_DEFAULT_MS' "$FRONTEND_OVERVIEW_REFRESH_DEFAULT_MS"
+  printf '  %-45s %s\n' 'VITE_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS' "$FRONTEND_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS"
+  printf '  %-45s %s\n' 'VITE_OVERVIEW_REFRESH_SEQUENCES_MS' "$FRONTEND_OVERVIEW_REFRESH_SEQUENCES_MS"
+
+  printf '\n'
+  printf 'Backend environment variables:\n'
+  printf '  %-45s %s\n' 'APP_NAME' "$BACKEND_APP_NAME"
+  printf '  %-45s %s\n' 'DATABASE_URL' "$BACKEND_DATABASE_URL"
+  printf '  %-45s %s\n' 'DB_PATH' "$BACKEND_DB_PATH"
+  printf '  %-45s %s\n' 'MQTT_BROKER_HOST' "$BACKEND_MQTT_BROKER_HOST"
+  printf '  %-45s %s\n' 'MQTT_BROKER_PORT' "$BACKEND_MQTT_BROKER_PORT"
+  printf '  %-45s %s\n' 'API_URL_PREFIX' "$BACKEND_API_URL_PREFIX"
+  printf '  %-45s %s\n' 'CORS_ALLOWED_ORIGINS' "$BACKEND_CORS_ALLOWED_ORIGINS"
+  printf '  %-45s %s\n' 'BASIC_AUTH_ENABLED' "$BACKEND_BASIC_AUTH_ENABLED"
+  printf '  %-45s %s\n' 'FLASK_ENV' "$BACKEND_FLASK_ENV"
+  printf '  %-45s %s\n' 'MQTT_ENABLED' "$BACKEND_MQTT_ENABLED"
+  printf '  %-45s %s\n' 'SCHEDULER_ENABLED' "$BACKEND_SCHEDULER_ENABLED"
+  printf '  %-45s %s\n' 'SCHEDULER_TICK_SECONDS' "$BACKEND_SCHEDULER_TICK_SECONDS"
+  printf '  %-45s %s\n' 'MESSAGE_RETENTION_DAYS' "$BACKEND_MESSAGE_RETENTION_DAYS"
+  printf '  %-45s %s\n' 'SECRET_KEY' "$BACKEND_SECRET_KEY"
+  printf '\n'
+}
+
+review_env_settings() {
+  log "Reviewing frontend/backend environment variables before startup."
+  print_env_settings
+
+  if [[ "$(prompt_yes_no "Do you want to change any frontend/backend environment variable" "no")" == "no" ]]; then
+    return
+  fi
+
+  FRONTEND_APP_TITLE="$(prompt_default "VITE_APP_TITLE" "$FRONTEND_APP_TITLE")"
+  FRONTEND_APP_PROFILE="$(prompt_default "VITE_APP_PROFILE" "$FRONTEND_APP_PROFILE")"
+  FRONTEND_PUBLIC_BASE_PATH="$(normalize_frontend_public_base "$(prompt_default "VITE_PUBLIC_BASE_PATH" "$FRONTEND_PUBLIC_BASE_PATH")")"
+  FRONTEND_API_BASE_URL="$(prompt_default "VITE_API_BASE_URL" "$FRONTEND_API_BASE_URL")"
+  FRONTEND_OVERVIEW_REFRESH_DEFAULT_MS="$(prompt_default "VITE_OVERVIEW_REFRESH_DEFAULT_MS" "$FRONTEND_OVERVIEW_REFRESH_DEFAULT_MS")"
+  FRONTEND_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS="$(prompt_default "VITE_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS" "$FRONTEND_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS")"
+  FRONTEND_OVERVIEW_REFRESH_SEQUENCES_MS="$(prompt_default "VITE_OVERVIEW_REFRESH_SEQUENCES_MS" "$FRONTEND_OVERVIEW_REFRESH_SEQUENCES_MS")"
+
+  BACKEND_APP_NAME="$(prompt_default "APP_NAME" "$BACKEND_APP_NAME")"
+  BACKEND_DATABASE_URL="$(prompt_default "DATABASE_URL" "$BACKEND_DATABASE_URL")"
+  BACKEND_DB_PATH="$(prompt_default "DB_PATH" "$BACKEND_DB_PATH")"
+  BACKEND_MQTT_BROKER_HOST="$(prompt_default "MQTT_BROKER_HOST" "$BACKEND_MQTT_BROKER_HOST")"
+  BACKEND_MQTT_BROKER_PORT="$(prompt_default "MQTT_BROKER_PORT" "$BACKEND_MQTT_BROKER_PORT")"
+  BACKEND_API_URL_PREFIX="$(normalize_path_prefix "$(prompt_default "API_URL_PREFIX" "$BACKEND_API_URL_PREFIX")")"
+  BACKEND_CORS_ALLOWED_ORIGINS="$(prompt_default "CORS_ALLOWED_ORIGINS" "$BACKEND_CORS_ALLOWED_ORIGINS")"
+  BACKEND_BASIC_AUTH_ENABLED="$(prompt_bool_env "BASIC_AUTH_ENABLED" "$BACKEND_BASIC_AUTH_ENABLED")"
+  BACKEND_FLASK_ENV="$(prompt_default "FLASK_ENV" "$BACKEND_FLASK_ENV")"
+  BACKEND_MQTT_ENABLED="$(prompt_bool_env "MQTT_ENABLED" "$BACKEND_MQTT_ENABLED")"
+  BACKEND_SCHEDULER_ENABLED="$(prompt_bool_env "SCHEDULER_ENABLED" "$BACKEND_SCHEDULER_ENABLED")"
+  BACKEND_SCHEDULER_TICK_SECONDS="$(prompt_default "SCHEDULER_TICK_SECONDS" "$BACKEND_SCHEDULER_TICK_SECONDS")"
+  BACKEND_MESSAGE_RETENTION_DAYS="$(prompt_default "MESSAGE_RETENTION_DAYS" "$BACKEND_MESSAGE_RETENTION_DAYS")"
+  BACKEND_SECRET_KEY="$(prompt_default "SECRET_KEY" "$BACKEND_SECRET_KEY")"
+
+  print_env_settings
+}
+
+write_backend_compose_override() {
+  COMPOSE_OVERRIDE_FILE="$DEPLOY_DIR/docker-compose.generated.override.yml"
+  cat > "$COMPOSE_OVERRIDE_FILE" <<EOF
+services:
+  backend:
+    environment:
+      APP_NAME: "$(yaml_escape "$BACKEND_APP_NAME")"
+      DATABASE_URL: "$(yaml_escape "$BACKEND_DATABASE_URL")"
+      DB_PATH: "$(yaml_escape "$BACKEND_DB_PATH")"
+      MQTT_BROKER_HOST: "$(yaml_escape "$BACKEND_MQTT_BROKER_HOST")"
+      MQTT_BROKER_PORT: "$(yaml_escape "$BACKEND_MQTT_BROKER_PORT")"
+      API_URL_PREFIX: "$(yaml_escape "$BACKEND_API_URL_PREFIX")"
+      CORS_ALLOWED_ORIGINS: "$(yaml_escape "$BACKEND_CORS_ALLOWED_ORIGINS")"
+      BASIC_AUTH_ENABLED: "$(yaml_escape "$BACKEND_BASIC_AUTH_ENABLED")"
+      FLASK_ENV: "$(yaml_escape "$BACKEND_FLASK_ENV")"
+      MQTT_ENABLED: "$(yaml_escape "$BACKEND_MQTT_ENABLED")"
+      SCHEDULER_ENABLED: "$(yaml_escape "$BACKEND_SCHEDULER_ENABLED")"
+      SCHEDULER_TICK_SECONDS: "$(yaml_escape "$BACKEND_SCHEDULER_TICK_SECONDS")"
+      MESSAGE_RETENTION_DAYS: "$(yaml_escape "$BACKEND_MESSAGE_RETENTION_DAYS")"
+      SECRET_KEY: "$(yaml_escape "$BACKEND_SECRET_KEY")"
+EOF
 }
 
 render_template() {
@@ -317,10 +499,13 @@ build_frontend_artifact() {
   log "Building frontend artifact image."
   docker build \
     -f "$REPO_DIR/FE/Dockerfile.build" \
-    --build-arg "VITE_APP_TITLE=$APP_TITLE" \
-    --build-arg "VITE_APP_PROFILE=production" \
-    --build-arg "VITE_PUBLIC_BASE_PATH=$FRONTEND_BASE_PATH" \
-    --build-arg "VITE_API_BASE_URL=$API_URL_PREFIX" \
+    --build-arg "VITE_APP_TITLE=$FRONTEND_APP_TITLE" \
+    --build-arg "VITE_APP_PROFILE=$FRONTEND_APP_PROFILE" \
+    --build-arg "VITE_PUBLIC_BASE_PATH=$FRONTEND_PUBLIC_BASE_PATH" \
+    --build-arg "VITE_API_BASE_URL=$FRONTEND_API_BASE_URL" \
+    --build-arg "VITE_OVERVIEW_REFRESH_DEFAULT_MS=$FRONTEND_OVERVIEW_REFRESH_DEFAULT_MS" \
+    --build-arg "VITE_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS=$FRONTEND_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS" \
+    --build-arg "VITE_OVERVIEW_REFRESH_SEQUENCES_MS=$FRONTEND_OVERVIEW_REFRESH_SEQUENCES_MS" \
     -t "$image_tag" \
     "$REPO_DIR/FE"
 
@@ -406,20 +591,25 @@ main() {
   mkdir -p "$INSTALL_ROOT" "$DEPLOY_DIR" "$NGINX_RUNTIME_DIR"
   clone_or_update_repo
 
-  if [[ "$USE_OWN_NGINX" == "yes" ]]; then
-    NGINX_CONF_FILE="$NGINX_RUNTIME_DIR/manual-nginx-snippet.conf"
-    render_template "$REPO_DIR/deploy/nginx/http.conf.template" "$NGINX_CONF_FILE"
-  else
-    NGINX_CONF_FILE="$NGINX_RUNTIME_DIR/default.conf"
-    if [[ "$ENABLE_LETSENCRYPT" == "yes" ]]; then
-      render_template "$REPO_DIR/deploy/nginx/http.conf.template" "$NGINX_CONF_FILE"
-    else
-      render_template "$REPO_DIR/deploy/nginx/http.conf.template" "$NGINX_CONF_FILE"
-    fi
-  fi
-
   MOSQUITTO_CONFIG_DIR="$REPO_DIR/mosquitto"
   CORS_ALLOWED_ORIGINS="$(build_cors_origins)"
+
+  initialize_env_settings
+  review_env_settings
+
+  API_URL_PREFIX="$BACKEND_API_URL_PREFIX"
+  CORS_ALLOWED_ORIGINS="$BACKEND_CORS_ALLOWED_ORIGINS"
+  APP_TITLE="$FRONTEND_APP_TITLE"
+  APP_PATH_PREFIX="$(normalize_path_prefix "$FRONTEND_PUBLIC_BASE_PATH")"
+
+  if [[ "$USE_OWN_NGINX" == "yes" ]]; then
+    NGINX_CONF_FILE="$NGINX_RUNTIME_DIR/manual-nginx-snippet.conf"
+  else
+    NGINX_CONF_FILE="$NGINX_RUNTIME_DIR/default.conf"
+  fi
+  render_template "$REPO_DIR/deploy/nginx/http.conf.template" "$NGINX_CONF_FILE"
+
+  write_backend_compose_override
 
   cat > "$DEPLOY_ENV_FILE" <<EOF
 STACK_NAME=$STACK_NAME
@@ -430,6 +620,25 @@ NGINX_CONF_FILE=$NGINX_CONF_FILE
 API_URL_PREFIX=$API_URL_PREFIX
 CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
 TRANSLATION_REPLACEMENT_FILE=$TRANSLATION_REPLACEMENT_FILE
+VITE_APP_TITLE=$FRONTEND_APP_TITLE
+VITE_APP_PROFILE=$FRONTEND_APP_PROFILE
+VITE_PUBLIC_BASE_PATH=$FRONTEND_PUBLIC_BASE_PATH
+VITE_API_BASE_URL=$FRONTEND_API_BASE_URL
+VITE_OVERVIEW_REFRESH_DEFAULT_MS=$FRONTEND_OVERVIEW_REFRESH_DEFAULT_MS
+VITE_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS=$FRONTEND_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS
+VITE_OVERVIEW_REFRESH_SEQUENCES_MS=$FRONTEND_OVERVIEW_REFRESH_SEQUENCES_MS
+APP_NAME=$BACKEND_APP_NAME
+DATABASE_URL=$BACKEND_DATABASE_URL
+DB_PATH=$BACKEND_DB_PATH
+MQTT_BROKER_HOST=$BACKEND_MQTT_BROKER_HOST
+MQTT_BROKER_PORT=$BACKEND_MQTT_BROKER_PORT
+BASIC_AUTH_ENABLED=$BACKEND_BASIC_AUTH_ENABLED
+FLASK_ENV=$BACKEND_FLASK_ENV
+MQTT_ENABLED=$BACKEND_MQTT_ENABLED
+SCHEDULER_ENABLED=$BACKEND_SCHEDULER_ENABLED
+SCHEDULER_TICK_SECONDS=$BACKEND_SCHEDULER_TICK_SECONDS
+MESSAGE_RETENTION_DAYS=$BACKEND_MESSAGE_RETENTION_DAYS
+SECRET_KEY=$BACKEND_SECRET_KEY
 EOF
 
   build_frontend_artifact
@@ -457,7 +666,7 @@ EOF
 
   log "Deployment completed."
   printf '\n'
-  printf 'Frontend URL path: %s\n' "$APP_PATH_PREFIX/"
+  printf 'Frontend URL path: %s\n' "$FRONTEND_PUBLIC_BASE_PATH"
   printf 'API URL path: %s\n' "$API_URL_PREFIX"
   printf 'Nginx config: %s\n' "$NGINX_CONF_FILE"
 }

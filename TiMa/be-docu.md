@@ -152,6 +152,11 @@ Input Validations:
 - Vue.js Frontend to view and maintain Entities and and manually start and stop ExecutionEvents
     - central config file
 
+### Deployment behavior
+- The root `install.sh` ensures Docker is enabled on boot (`systemctl enable --now docker`).
+- Backend, nginx, and mosquitto services in compose use `restart: unless-stopped`, so they automatically start again after host reboot once Docker starts.
+- Before `docker compose up`, `install.sh` prints frontend and backend environment settings and offers an interactive override step; backend overrides are applied via a generated compose override file.
+
 ## Functional logic
 
 ### API

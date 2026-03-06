@@ -45,6 +45,10 @@
 - all static texts that the user will see should be mapped via global translation file
 - toast notifications are responsive on small screens (`<= 640px`) and use viewport-based width with side margins so messages stay fully visible on smartphones
 
+### Deployment notes
+- The root `install.sh` now enforces Docker daemon auto-start on boot (`systemctl enable --now docker`) so compose services configured with restart policies come back automatically after reboot.
+- Before starting containers, `install.sh` lists frontend (`VITE_*`) and backend runtime environment variables and optionally lets the user override each value interactively.
+
 ## Auth
 - If the browser has no logged-in session, the app opens a login component first.
 - Login component:
