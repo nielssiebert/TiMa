@@ -234,6 +234,10 @@ Input Validations:
 - Only logged in and confirmed users are allowed to call restricted endpoints besides the login endpoint.
 - User management endpoints (`GET /api/users`, `POST /api/users/{id}/confirm`, `POST /api/users/change_password`) require authenticated and confirmed users.
 - Via the config `BASIC_AUTH_ENABLED` it can be globally activated or deactivated.
+- To reduce per-request latency, successful Basic Auth validation is cached in-memory for a short duration.
+    - `AUTH_CACHE_TTL_SECONDS` (default `150`): cache lifetime for a validated `Authorization` header.
+    - `AUTH_CACHE_MAX_SIZE` (default `256`): maximum number of cached auth entries.
+    - cache entries are invalidated for a user when that user is confirmed or changes password.
 
 ## Deployment additions
 

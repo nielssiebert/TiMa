@@ -49,6 +49,7 @@
 - The root `install.sh` now enforces Docker daemon auto-start on boot (`systemctl enable --now docker`) so compose services configured with restart policies come back automatically after reboot.
 - Before starting containers, `install.sh` lists frontend (`VITE_*`) and backend runtime environment variables and optionally lets the user override each value interactively.
 - Generated nginx configs now redirect app paths without trailing slash (e.g. `/tima` → `/tima/`) and use SPA fallback under the configured app path so browser reloads on nested routes do not return `404`.
+- Overview load latency also depends on backend Basic Auth validation cost; backend now supports short-lived auth-result caching (`AUTH_CACHE_TTL_SECONDS`, `AUTH_CACHE_MAX_SIZE`) to reduce repeated hash-check overhead.
 
 ## Auth
 - If the browser has no logged-in session, the app opens a login component first.

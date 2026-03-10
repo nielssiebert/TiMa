@@ -121,10 +121,4 @@ SQLite lives in a Docker named volume (`tima_sqlite`) mapped to backend path `/d
 
 ## Resource profile
 
-Compose sets per-container memory limits for lower RAM usage on Raspberry Pi:
-
-- mosquitto: 64 MB
-- backend: 256 MB
-- nginx: 96 MB
-
 Adjust limits in `deploy/docker-compose.rpi.yml` if needed.

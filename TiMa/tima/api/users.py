@@ -8,7 +8,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..extensions import db
 from ..models import User
-from .common import validation_error
+from .common import invalidate_auth_cache_for_user, validation_error
 from .serializers import serialize_user
 
 
@@ -66,6 +66,7 @@ def confirm_user(entity_id: str):
         return validation_error("User not found", status_code=404)
     user.confirmed = True
     db.session.commit()
+    invalidate_auth_cache_for_user(user.username)
     return jsonify(serialize_user(user))
 
 
@@ -87,6 +88,7 @@ def change_password():
         method=_PASSWORD_HASH_METHOD,
     )
     db.session.commit()
+    invalidate_auth_cache_for_user(user.username)
     return jsonify({"message": "ok"})
 
 

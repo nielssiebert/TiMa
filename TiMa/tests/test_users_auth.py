@@ -23,6 +23,8 @@ def auth_app(monkeypatch, tmp_path_factory):
     app.config.update(
         TESTING=True,
         BASIC_AUTH_ENABLED=True,
+        AUTH_CACHE_TTL_SECONDS=30,
+        AUTH_CACHE_MAX_SIZE=256,
         MQTT_ENABLED=False,
         SCHEDULER_ENABLED=False,
         SQLALCHEMY_DATABASE_URI=db_url,
@@ -183,6 +185,52 @@ def test_change_password_requires_payload_fields(auth_client):
     )
 
     assert response.status_code == 400
+
+
+def test_basic_auth_uses_short_lived_cache(auth_client, monkeypatch):
+    import tima.api.common as api_common
+
+    auth_client.post(
+        "/api/users",
+        json={"id": "u1", "username": "admin", "password": "secret"},
+    )
+    auth_header = _basic_auth("admin", "secret")
+
+    no_auth = auth_client.get("/api/factors")
+    first = auth_client.get("/api/factors", headers=auth_header)
+
+    def fail_if_called(*_args, **_kwargs):
+        raise AssertionError("check_password_hash should not run for cached auth")
+
+    monkeypatch.setattr(api_common, "check_password_hash", fail_if_called)
+    second = auth_client.get("/api/factors", headers=auth_header)
+
+    assert no_auth.status_code == 401
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+
+def test_password_change_invalidates_auth_cache(auth_client):
+    auth_client.post(
+        "/api/users",
+        json={"id": "u1", "username": "admin", "password": "secret"},
+    )
+
+    old_auth = _basic_auth("admin", "secret")
+    auth_client.get("/api/factors", headers=old_auth)
+
+    change_response = auth_client.post(
+        "/api/users/change_password",
+        json={"old_password": "secret", "new_password": "new-secret"},
+        headers=old_auth,
+    )
+
+    old_access = auth_client.get("/api/factors", headers=old_auth)
+    new_access = auth_client.get("/api/factors", headers=_basic_auth("admin", "new-secret"))
+
+    assert change_response.status_code == 200
+    assert old_access.status_code == 401
+    assert new_access.status_code == 200
 
 
 def _basic_auth(username: str, password: str) -> dict[str, str]:

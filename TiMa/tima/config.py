@@ -71,6 +71,8 @@ class Config:
 
     # API
     API_URL_PREFIX: str = _normalize_api_prefix(_get_env("API_URL_PREFIX", "/api"))
+    AUTH_CACHE_TTL_SECONDS: float = float(_get_env("AUTH_CACHE_TTL_SECONDS", "150"))
+    AUTH_CACHE_MAX_SIZE: int = int(_get_env("AUTH_CACHE_MAX_SIZE", "256"))
 
     # CORS
     CORS_ALLOWED_ORIGINS: tuple[str, ...] = _get_env_tuple(
