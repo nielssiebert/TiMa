@@ -21,9 +21,13 @@ server {
     access_log /var/log/nginx/access.log;
     error_log /var/log/nginx/error.log warn;
 
+    location = __APP_PATH_PREFIX__ {
+        return 301 __APP_PATH_PREFIX__/;
+    }
+
     location __APP_PATH_PREFIX__/ {
         alias /usr/share/nginx/html/;
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ __APP_PATH_PREFIX__/index.html;
     }
 
     location __API_URL_PREFIX__/ {

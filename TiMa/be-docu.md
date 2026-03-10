@@ -156,6 +156,7 @@ Input Validations:
 - The root `install.sh` ensures Docker is enabled on boot (`systemctl enable --now docker`).
 - Backend, nginx, and mosquitto services in compose use `restart: unless-stopped`, so they automatically start again after host reboot once Docker starts.
 - Before `docker compose up`, `install.sh` prints frontend and backend environment settings and offers an interactive override step; backend overrides are applied via a generated compose override file.
+- Generated nginx templates now include a trailing-slash redirect for the app prefix (for example `/tima` → `/tima/`) and path-scoped SPA fallback, while API proxying remains under `API_URL_PREFIX`.
 
 ## Functional logic
 

@@ -218,8 +218,8 @@ initialize_env_settings() {
 
   FRONTEND_APP_TITLE="$(read_env_file_value "$fe_env_file" "VITE_APP_TITLE" "$APP_TITLE")"
   FRONTEND_APP_PROFILE="$(read_env_file_value "$fe_env_file" "VITE_APP_PROFILE" "production")"
-  FRONTEND_PUBLIC_BASE_PATH="$(normalize_frontend_public_base "$(read_env_file_value "$fe_env_file" "VITE_PUBLIC_BASE_PATH" "$FRONTEND_BASE_PATH")")"
-  FRONTEND_API_BASE_URL="$(read_env_file_value "$fe_env_file" "VITE_API_BASE_URL" "$API_URL_PREFIX")"
+  FRONTEND_PUBLIC_BASE_PATH="$(normalize_frontend_public_base "$FRONTEND_BASE_PATH")"
+  FRONTEND_API_BASE_URL="$API_URL_PREFIX"
   FRONTEND_OVERVIEW_REFRESH_DEFAULT_MS="$(read_env_file_value "$fe_env_file" "VITE_OVERVIEW_REFRESH_DEFAULT_MS" "60000")"
   FRONTEND_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS="$(read_env_file_value "$fe_env_file" "VITE_OVERVIEW_REFRESH_EXECUTION_EVENTS_MS" "60000")"
   FRONTEND_OVERVIEW_REFRESH_SEQUENCES_MS="$(read_env_file_value "$fe_env_file" "VITE_OVERVIEW_REFRESH_SEQUENCES_MS" "60000")"
@@ -330,11 +330,22 @@ EOF
 render_template() {
   local template_file="$1"
   local target_file="$2"
+  local nginx_app_prefix="$APP_PATH_PREFIX"
+  if [[ "$nginx_app_prefix" == "/" ]]; then
+    nginx_app_prefix=""
+  fi
   sed \
     -e "s|__DOMAIN__|$DOMAIN|g" \
-    -e "s|__APP_PATH_PREFIX__|$APP_PATH_PREFIX|g" \
+    -e "s|__APP_PATH_PREFIX__|$nginx_app_prefix|g" \
     -e "s|__API_URL_PREFIX__|$API_URL_PREFIX|g" \
     "$template_file" > "$target_file"
+
+  if [[ "$APP_PATH_PREFIX" == "/" ]]; then
+    sed -i \
+      -e '/location =  {/,/}/d' \
+      -e 's|location // {|location / {|g' \
+      "$target_file"
+  fi
 }
 
 clone_or_update_repo() {
