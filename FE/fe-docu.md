@@ -76,6 +76,7 @@
 - The info icon shows the field-specific explanation via tooltip/title text.
 - Explanations describe impact and purpose of the field and are maintained in global i18n messages.
 - Relation picker typeahead suggestions close automatically when the search input loses focus.
+- Relation picker suggestion selection is committed on pointer-down so blur handling cannot intermittently drop a clicked result.
 
 ### API service pattern
 - Maintenance views should call dedicated feature services instead of directly calling `httpClient`.
@@ -185,6 +186,7 @@
     - `WEEKLY` requires weekdays
 - Notes:
     - recurrence type is locked after creation in maintenance UI because backend does not allow changing it on update
+    - weekdays selector is only rendered when recurrence type is `WEEKLY`
     - activated toggle uses dedicated backend endpoints (`/activate` and `/deactivate`)
     - `from date` and `to date` are disabled for `ONE_TIME`
     - time field supports hours, minutes, and seconds

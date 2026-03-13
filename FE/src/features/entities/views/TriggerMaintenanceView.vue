@@ -100,6 +100,7 @@ function applyEntityPayload(payload: unknown): void {
 
 function createPayload(): TriggerPayload {
   const normalizedTime = normalizeTimeValue(time.value)
+  const normalizedWeekdays = recurranceType.value === 'WEEKLY' ? weekdays.value : []
   return {
     id: editableId.value.trim(),
     name: name.value.trim(),
@@ -107,7 +108,7 @@ function createPayload(): TriggerPayload {
     recurrance_type: recurranceType.value,
     date: date.value || null,
     time: normalizedTime ?? null,
-    weekdays: weekdays.value,
+    weekdays: normalizedWeekdays,
     from_date: fromDate.value || null,
     to_date: toDate.value || null,
     recurring: recurring.value,
@@ -355,7 +356,7 @@ function extractError(error: unknown): string {
       <div class="entity-maintenance__field"><label class="entity-maintenance__label" for="trigger-time">{{ t('entities.triggers.fields.time') }} <button type="button" class="entity-maintenance__info" :title="t('entities.triggers.info.time')" :aria-label="t('entities.triggers.info.time')" @click="showInfo(t('entities.triggers.info.time'))"><FontAwesomeIcon icon="fa-solid fa-circle-info" /></button></label><input id="trigger-time" v-model="time" class="entity-maintenance__native-input" type="text" inputmode="numeric" placeholder="HH:MM:SS" maxlength="8" :disabled="loading" @keydown="handleTimeKeydown" @blur="normalizeTimeInput" /></div>
       <div class="entity-maintenance__field" v-if="recurranceType === 'ONE_TIME'"><label class="entity-maintenance__label" for="trigger-date">{{ t('entities.triggers.fields.date') }} <button type="button" class="entity-maintenance__info" :title="t('entities.triggers.info.date')" :aria-label="t('entities.triggers.info.date')" @click="showInfo(t('entities.triggers.info.date'))"><FontAwesomeIcon icon="fa-solid fa-circle-info" /></button></label><input id="trigger-date" v-model="date" class="entity-maintenance__native-input" type="date" :disabled="loading" /></div>
     </div>
-    <div class="entity-maintenance__field">
+    <div v-if="recurranceType === 'WEEKLY'" class="entity-maintenance__field">
       <label class="entity-maintenance__label">{{ t('entities.triggers.fields.weekdays') }} <button type="button" class="entity-maintenance__info" :title="t('entities.triggers.info.weekdays')" :aria-label="t('entities.triggers.info.weekdays')" @click="showInfo(t('entities.triggers.info.weekdays'))"><FontAwesomeIcon icon="fa-solid fa-circle-info" /></button></label>
       <div class="entity-maintenance__checkbox-row">
         <label v-for="day in weekdayOptions" :key="day" class="entity-maintenance__checkbox-item">

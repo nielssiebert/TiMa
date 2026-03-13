@@ -195,6 +195,7 @@ Input Validations:
     - `POST /api/triggers/{id}/activate`
     - `POST /api/triggers/{id}/deactivate`
 - `activated` is not allowed in trigger create/update payloads.
+- frontend trigger maintenance only exposes the `weekdays` input when `recurrance_type` is `WEEKLY`, and submits an empty weekday list for other recurrence types.
 
 #### Abbreviation for Entity ExecutionOrder
 - there should be additional endpoints to start and stop an ExecutionOrder, manually, as override.

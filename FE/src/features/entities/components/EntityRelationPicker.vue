@@ -32,6 +32,7 @@ const isSearching = ref(false)
 const hasSearched = ref(false)
 const searchFailed = ref(false)
 let searchTimer: number | null = null
+let blurTimer: number | null = null
 
 const selectedIds = computed(() => selectedItems.value.map((item) => item.id))
 const showNoResults = computed(
@@ -48,6 +49,7 @@ watch(
 
 onUnmounted(() => {
   clearSearchTimer()
+  clearBlurTimer()
 })
 
 function queueSearch(): void {
@@ -59,11 +61,20 @@ function queueSearch(): void {
 }
 
 function handleInputBlur(): void {
-  window.setTimeout(() => {
+  clearBlurTimer()
+  blurTimer = window.setTimeout(() => {
     suggestions.value = []
     hasSearched.value = false
     searchFailed.value = false
   }, 150)
+}
+
+function clearBlurTimer(): void {
+  if (blurTimer === null) {
+    return
+  }
+  window.clearTimeout(blurTimer)
+  blurTimer = null
 }
 
 function clearSearchTimer(): void {
@@ -133,12 +144,18 @@ function parseOptions(payload: unknown): RelationOption[] {
 }
 
 function addItem(item: RelationOption): void {
+  clearSearchTimer()
+  clearBlurTimer()
   selectedItems.value = [...selectedItems.value, item]
   emit('update:modelValue', selectedItems.value.map((entry) => entry.id))
   query.value = ''
   suggestions.value = []
   hasSearched.value = false
   searchFailed.value = false
+}
+
+function handleSuggestionMouseDown(item: RelationOption): void {
+  addItem(item)
 }
 
 function removeItem(id: string): void {
@@ -205,7 +222,11 @@ function normalizeSearchTerm(raw: string): string {
 
     <ul v-if="suggestions.length" class="relation-picker__suggestions">
       <li v-for="item in suggestions" :key="item.id">
-        <button type="button" class="relation-picker__suggestion-btn" @click="addItem(item)">
+        <button
+          type="button"
+          class="relation-picker__suggestion-btn"
+          @mousedown.prevent="handleSuggestionMouseDown(item)"
+        >
           {{ item.name }}
         </button>
       </li>
