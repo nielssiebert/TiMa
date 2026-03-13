@@ -1,6 +1,7 @@
 @import 'primeicons/primeicons.css';
 
 :root {
+  color-scheme: light;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --app-text-color: #2d3133;
   --app-sidebar-bg: #deefff;
@@ -11,6 +12,94 @@
   --app-content-bg: #e7f5e7;
   --app-content-item-bg: #d4e8d4;
   --app-content-border: #789878;
+  --app-status-off-bg: #fddddd;
+  --app-status-off-border: #f0b8b8;
+  --app-status-off-text: #5f2222;
+  --app-status-on-bg: #d4ead4;
+  --app-status-on-border: #b2d4b2;
+  --app-status-on-text: #224f22;
+  --app-dropzone-bg: #ddeadc;
+  --app-dropzone-border: #8ea98e;
+  --app-dropzone-active-bg: #d0e2cf;
+  --app-dropzone-active-border: #6d8f6d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --app-text-color: #dce6ed;
+    --app-sidebar-bg: #18232d;
+    --app-sidebar-bg-hover: #243442;
+    --app-sidebar-border: #4b6479;
+    --app-topbar-bg: #223141;
+    --app-topbar-border: #5d7890;
+    --app-content-bg: #111915;
+    --app-content-item-bg: #1a2620;
+    --app-content-border: #4d6658;
+    --app-status-off-bg: #3f2428;
+    --app-status-off-border: #70434a;
+    --app-status-off-text: #f2dadd;
+    --app-status-on-bg: #214a38;
+    --app-status-on-border: #2f6e53;
+    --app-status-on-text: #dff2e9;
+    --app-dropzone-bg: #18231c;
+    --app-dropzone-border: #455f4f;
+    --app-dropzone-active-bg: #213228;
+    --app-dropzone-active-border: #5d8a6f;
+  }
+
+  .app-content :is(.entity-card, .auth-card) .p-button:not(.p-button-secondary):not(.p-button-danger):not(.p-button-outlined):not(.p-button-text) {
+    background: #2b5f4b;
+    border-color: #3b8065;
+    color: #e7f5ef;
+  }
+
+  .app-content :is(.entity-card, .auth-card) .p-button:not(.p-button-secondary):not(.p-button-danger):not(.p-button-outlined):not(.p-button-text):enabled:hover {
+    background: #35745a;
+    border-color: #44916f;
+  }
+
+  .app-content :is(.entity-card, .auth-card) .p-button:not(.p-button-secondary):not(.p-button-danger):not(.p-button-outlined):not(.p-button-text):enabled:active {
+    background: #234f3f;
+    border-color: #2f6d56;
+  }
+
+  .app-content :is(.entity-card, .auth-card) .p-button.p-button-danger {
+    background: #5c2830;
+    border-color: #85414c;
+    color: #f9e7ea;
+  }
+
+  .app-content :is(.entity-card, .auth-card) .p-button.p-button-danger:enabled:hover {
+    background: #6e313b;
+    border-color: #9a4c59;
+  }
+
+  .app-content :is(.entity-card, .auth-card) .p-button.p-button-danger:enabled:active {
+    background: #4b2228;
+    border-color: #713640;
+  }
+
+  .app-content .p-togglebutton.p-togglebutton-checked {
+    background: #214a38;
+    border-color: #2f6e53;
+    color: #dff2e9;
+  }
+
+  .app-content .p-togglebutton.p-togglebutton-checked:not(.p-disabled):hover {
+    background: #285c45;
+    border-color: #39805f;
+  }
+
+  .app-content .p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider {
+    background: #27553f;
+    border-color: #35735a;
+  }
+
+  .app-content .p-toggleswitch.p-toggleswitch-checked:not(.p-disabled):hover .p-toggleswitch-slider {
+    background: #31684e;
+    border-color: #3f8668;
+  }
 }
 
 * {

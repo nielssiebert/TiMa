@@ -801,15 +801,15 @@ function extractError(error: unknown): string {
 
 <style scoped>
 :deep(.entity-maintenance__running-toggle.p-togglebutton) {
-  background: var(--p-red-100, var(--p-surface-200));
-  border-color: var(--p-red-200, var(--p-surface-300));
-  color: var(--p-red-900, var(--p-text-color));
+  background: var(--app-status-off-bg, var(--p-red-100, var(--p-surface-200)));
+  border-color: var(--app-status-off-border, var(--p-red-200, var(--p-surface-300)));
+  color: var(--app-status-off-text, var(--p-red-900, var(--p-text-color)));
 }
 
 :deep(.entity-maintenance__running-toggle.p-togglebutton.p-togglebutton-checked) {
-  background: var(--p-green-100, var(--p-surface-200));
-  border-color: var(--p-green-200, var(--p-surface-300));
-  color: var(--p-green-900, var(--p-text-color));
+  background: var(--app-status-on-bg, var(--p-green-100, var(--p-surface-200)));
+  border-color: var(--app-status-on-border, var(--p-green-200, var(--p-surface-300)));
+  color: var(--app-status-on-text, var(--p-green-900, var(--p-text-color)));
 }
 
 .sequence-order-maintenance {
@@ -910,9 +910,9 @@ function extractError(error: unknown): string {
 }
 
 .sequence-order-maintenance__gap {
-  border: 1px dashed var(--p-surface-400, var(--p-surface-border));
+  border: 1px dashed var(--app-dropzone-border, var(--p-surface-400, var(--p-surface-border)));
   border-radius: 0.375rem;
-  background: var(--p-surface-50, var(--p-surface-100));
+  background: var(--app-dropzone-bg, var(--p-surface-50, var(--p-surface-100)));
   color: var(--p-text-muted-color, var(--p-text-color-secondary));
   padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
@@ -921,7 +921,8 @@ function extractError(error: unknown): string {
 
 .sequence-order-maintenance__gap--active {
   border-style: solid;
-  border-color: var(--p-primary-color, var(--p-highlight-background));
+  border-color: var(--app-dropzone-active-border, var(--p-primary-color, var(--p-highlight-background)));
+  background: var(--app-dropzone-active-bg, var(--app-dropzone-bg, var(--app-content-item-bg)));
   color: var(--p-text-color);
 }
 

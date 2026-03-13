@@ -247,24 +247,22 @@ function isEntityLike(item: unknown): item is {
 
 <style scoped>
 :deep(.entity-list__running-toggle.p-togglebutton) {
-  background: var(--p-red-100, var(--p-surface-200));
-  border-color: var(--p-red-200, var(--p-surface-300));
-  color: var(--p-red-900, var(--p-text-color));
+  background: var(--app-status-off-bg, var(--p-red-100, var(--p-surface-200)));
+  border-color: var(--app-status-off-border, var(--p-red-200, var(--p-surface-300)));
+  color: var(--app-status-off-text, var(--p-red-900, var(--p-text-color)));
 }
 
 :deep(.entity-list__running-toggle.p-togglebutton:not(.p-disabled):hover) {
-  background: var(--p-red-200, var(--p-surface-300));
-  border-color: var(--p-red-300, var(--p-surface-400));
+  filter: brightness(1.06);
 }
 
 :deep(.entity-list__running-toggle.p-togglebutton.p-togglebutton-checked) {
-  background: var(--p-green-100, var(--p-surface-200));
-  border-color: var(--p-green-200, var(--p-surface-300));
-  color: var(--p-green-900, var(--p-text-color));
+  background: var(--app-status-on-bg, var(--p-green-100, var(--p-surface-200)));
+  border-color: var(--app-status-on-border, var(--p-green-200, var(--p-surface-300)));
+  color: var(--app-status-on-text, var(--p-green-900, var(--p-text-color)));
 }
 
 :deep(.entity-list__running-toggle.p-togglebutton.p-togglebutton-checked:not(.p-disabled):hover) {
-  background: var(--p-green-200, var(--p-surface-300));
-  border-color: var(--p-green-300, var(--p-surface-400));
+  filter: brightness(1.06);
 }
 </style>

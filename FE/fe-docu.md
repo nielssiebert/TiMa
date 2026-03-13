@@ -42,6 +42,7 @@
     - should work on a smartphone browser
     - should work on a small tablet
     - should work on a normal pc/laptop monitor
+- custom shell colors automatically switch to a darker palette when the browser/OS prefers dark mode
 - all static texts that the user will see should be mapped via global translation file
 - toast notifications are responsive on small screens (`<= 640px`) and use viewport-based width with side margins so messages stay fully visible on smartphones
 

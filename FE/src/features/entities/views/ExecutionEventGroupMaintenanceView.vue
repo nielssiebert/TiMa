@@ -178,14 +178,14 @@ function extractError(error: unknown): string {
 
 <style scoped>
 :deep(.entity-maintenance__running-toggle.p-togglebutton) {
-  background: var(--p-red-100, var(--p-surface-200));
-  border-color: var(--p-red-200, var(--p-surface-300));
-  color: var(--p-red-900, var(--p-text-color));
+  background: var(--app-status-off-bg, var(--p-red-100, var(--p-surface-200)));
+  border-color: var(--app-status-off-border, var(--p-red-200, var(--p-surface-300)));
+  color: var(--app-status-off-text, var(--p-red-900, var(--p-text-color)));
 }
 
 :deep(.entity-maintenance__running-toggle.p-togglebutton.p-togglebutton-checked) {
-  background: var(--p-green-100, var(--p-surface-200));
-  border-color: var(--p-green-200, var(--p-surface-300));
-  color: var(--p-green-900, var(--p-text-color));
+  background: var(--app-status-on-bg, var(--p-green-100, var(--p-surface-200)));
+  border-color: var(--app-status-on-border, var(--p-green-200, var(--p-surface-300)));
+  color: var(--app-status-on-text, var(--p-green-900, var(--p-text-color)));
 }
 </style>
