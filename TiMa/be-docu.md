@@ -97,7 +97,8 @@ Attributes:
 - triggers: relations to Triggers
 
 Input Validations:
-- the sequence_items cannot be changed via api update request when automatically_created is true 
+- for `automatically_created=true`, `sequence_items` are immutable on update
+- updates are accepted when submitted `sequence_items` are identical to the persisted items (no effective change)
 
 
 #### Factors
@@ -196,6 +197,7 @@ Input Validations:
     - `POST /api/triggers/{id}/deactivate`
 - `activated` is not allowed in trigger create/update payloads.
 - frontend trigger maintenance only exposes the `weekdays` input when `recurrance_type` is `WEEKLY`, and submits an empty weekday list for other recurrence types.
+- backend accepts empty `weekdays` values for non-`WEEKLY` trigger updates and treats them as unset (`null`).
 
 #### Abbreviation for Entity ExecutionOrder
 - there should be additional endpoints to start and stop an ExecutionOrder, manually, as override.
@@ -208,6 +210,7 @@ Input Validations:
 #### Abbreviation for Entity SequenceItem and Sequence
 - There is no need for endpoints for a SequenceItem. They are supposed to be included in the Sequence save request.
 - If an SequenceItem is removed from a Sequence via a Sequence update request then it should be removed from the db as well.
+- For automatically created Sequences, API updates may include `sequence_items` only when they are unchanged; any actual modification is rejected.
 - `GET /api/sequences/{id}` includes a `runtime` object with scheduler state:
     - `is_running`: `true` if at least one ExecutionEvent is currently running for this Sequence.
     - `running_execution_event_ids`: currently running ExecutionEvent ids.

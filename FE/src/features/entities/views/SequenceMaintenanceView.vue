@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import ToggleButton from 'primevue/togglebutton'
@@ -56,6 +56,8 @@ const touchPointY = ref(0)
 const isSyncingFromEntity = ref(false)
 const sequenceItemNames = ref<Record<string, string>>({})
 const status = ref(false)
+const isAutomaticallyCreated = ref(false)
+const isSequenceItemsLocked = computed(() => !isNewEntity.value && isAutomaticallyCreated.value)
 
 const draggedTouchItem = computed<SequenceOrderItem | null>(() => {
   if (!touchDragging.value || !draggedItemKey.value) {
@@ -115,6 +117,7 @@ watch(
 function resetForm(): void {
   name.value = ''
   editableId.value = ''
+  isAutomaticallyCreated.value = false
   triggerIds.value = []
   sequenceExecutionEventIds.value = []
   sequenceExecutionEventGroupIds.value = []
@@ -129,7 +132,7 @@ async function loadEntity(): Promise<void> {
   loading.value = true
   try {
     const payload = await sequenceService.getById(props.id)
-    applyEntityPayload(payload)
+    await applyEntityPayload(payload)
   } catch (error: unknown) {
     showError(extractError(error))
   } finally {
@@ -137,12 +140,13 @@ async function loadEntity(): Promise<void> {
   }
 }
 
-function applyEntityPayload(payload: unknown): void {
+async function applyEntityPayload(payload: unknown): Promise<void> {
   if (!isEntityLike(payload)) {
     return
   }
   editableId.value = String(payload.id ?? '')
   name.value = String(payload.name ?? '')
+  isAutomaticallyCreated.value = payload.automatically_created === true
   triggerIds.value = Array.isArray(payload.triggers)
     ? payload.triggers.filter((id): id is string => typeof id === 'string')
     : []
@@ -159,6 +163,7 @@ function applyEntityPayload(payload: unknown): void {
   sequenceExecutionEventGroupIds.value = mappedOrderItems
     .filter((item) => item.itemType === 'execution-event-group')
     .map((item) => item.entityId)
+  await nextTick()
   isSyncingFromEntity.value = false
 
   const runtime = isEntityLike(payload.runtime) ? payload.runtime : null
@@ -166,12 +171,15 @@ function applyEntityPayload(payload: unknown): void {
 }
 
 function createPayload(): SequencePayload {
-  return {
+  const payload: SequencePayload = {
     id: editableId.value.trim(),
     name: name.value.trim(),
     trigger_ids: triggerIds.value,
-    sequence_items: createSequenceItemsPayload(),
   }
+  if (!isSequenceItemsLocked.value) {
+    payload.sequence_items = createSequenceItemsPayload()
+  }
+  return payload
 }
 
 function createSequenceItemsPayload(): SequencePayload['sequence_items'] {
@@ -260,6 +268,9 @@ function reconcileOrderItems(): void {
 }
 
 function onDragStart(itemKey: string): void {
+  if (isSequenceItemsLocked.value) {
+    return
+  }
   draggedItemKey.value = itemKey
 }
 
@@ -271,6 +282,9 @@ function onDragEnd(): void {
 }
 
 function onDragOver(zoneKey: string, event: DragEvent): void {
+  if (isSequenceItemsLocked.value) {
+    return
+  }
   if (!draggedItemKey.value) {
     return
   }
@@ -279,6 +293,9 @@ function onDragOver(zoneKey: string, event: DragEvent): void {
 }
 
 function onTouchHandleStart(itemKey: string, event: TouchEvent): void {
+  if (isSequenceItemsLocked.value) {
+    return
+  }
   if (event.cancelable) {
     event.preventDefault()
   }
@@ -387,10 +404,16 @@ function dropDraggedItemOnZone(dropZone: string | null): boolean {
 }
 
 function onDropMatchOrder(targetItemKey: string): void {
+  if (isSequenceItemsLocked.value) {
+    return
+  }
   moveDraggedItem(targetItemKey, 'match')
 }
 
 function onDropAtPosition(position: number): void {
+  if (isSequenceItemsLocked.value) {
+    return
+  }
   moveDraggedToPosition(position)
 }
 
@@ -625,6 +648,9 @@ function extractError(error: unknown): string {
 <template>
   <section class="entity-card entity-maintenance">
     <h2 class="entity-card__title">{{ t(definition.maintenanceTitleKey) }}</h2>
+    <p v-if="isSequenceItemsLocked" class="sequence-maintenance__readonly-note">
+      {{ t('entities.sequences.notes.autoCreatedSequenceItemsReadonly') }}
+    </p>
     <div class="entity-maintenance__top-row">
       <div class="entity-maintenance__field"><label class="entity-maintenance__label entity-maintenance__label--small"
           for="sequence-id">{{ t('entities.sequences.fields.id') }} <button type="button"
@@ -671,7 +697,8 @@ function extractError(error: unknown): string {
           <FontAwesomeIcon icon="fa-solid fa-circle-info" />
         </button></label>
       <EntityRelationPicker v-model="sequenceExecutionEventIds" endpoint-path="/execution-events"
-        find-path="/execution-events/find" placeholder-key="entities.sequences.executionEventsPlaceholder" />
+        find-path="/execution-events/find" placeholder-key="entities.sequences.executionEventsPlaceholder"
+        :disabled="isSequenceItemsLocked || loading" />
     </div>
     <div class="entity-maintenance__field"><label class="entity-maintenance__label">{{
       t('entities.sequences.fields.executionEventGroups') }} <button type="button" class="entity-maintenance__info"
@@ -681,7 +708,8 @@ function extractError(error: unknown): string {
           <FontAwesomeIcon icon="fa-solid fa-circle-info" />
         </button></label>
       <EntityRelationPicker v-model="sequenceExecutionEventGroupIds" endpoint-path="/execution-event-groups"
-        find-path="/execution-event-groups/find" placeholder-key="entities.sequences.executionEventGroupsPlaceholder" />
+        find-path="/execution-event-groups/find" placeholder-key="entities.sequences.executionEventGroupsPlaceholder"
+        :disabled="isSequenceItemsLocked || loading" />
     </div>
     <div class="entity-maintenance__field"><label class="entity-maintenance__label">{{
       t('entities.sequences.fields.orderMaintenance') }} <button type="button" class="entity-maintenance__info"
@@ -715,7 +743,7 @@ function extractError(error: unknown): string {
                     'sequence-order-maintenance__item--dragging': draggedItemKey === item.key,
                     'sequence-order-maintenance__item--match-active': dragOverZone === `match:${item.key}`,
                   }"
-                  draggable="true"
+                  :draggable="!isSequenceItemsLocked"
                   @dragstart="onDragStart(item.key)"
                   @dragend="onDragEnd"
                   @dragover="onDragOver(`match:${item.key}`, $event)"
@@ -732,6 +760,7 @@ function extractError(error: unknown): string {
                   <button
                     type="button"
                     class="sequence-order-maintenance__handle"
+                    :disabled="isSequenceItemsLocked"
                     aria-label="Drag handle"
                     title="Drag handle"
                     @touchstart.stop="onTouchHandleStart(item.key, $event)"
@@ -942,6 +971,12 @@ function extractError(error: unknown): string {
   padding: 0.375rem 0.5rem;
   pointer-events: none;
   opacity: 0.95;
+}
+
+.sequence-maintenance__readonly-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color, var(--p-text-color-secondary));
 }
 
 .sequence-order-maintenance__ghost-icon {

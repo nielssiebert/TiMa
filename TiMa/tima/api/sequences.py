@@ -152,9 +152,66 @@ def _apply_trigger_ids(sequence: Sequence, data: dict[str, Any]):
 
 
 def _validate_automatic_sequence_update(entity: Sequence, data: dict[str, Any]):
-    if entity.automatically_created and "sequence_items" in data:
-        return validation_error("sequence_items cannot be changed for automatically_created sequences")
-    return None
+    if not entity.automatically_created or "sequence_items" not in data:
+        return None
+    if _payload_sequence_items_match_current(entity, data.get("sequence_items")):
+        data.pop("sequence_items", None)
+        return None
+    return validation_error("sequence_items cannot be changed for automatically_created sequences")
+
+
+def _payload_sequence_items_match_current(entity: Sequence, payload_items: Any) -> bool:
+    if not isinstance(payload_items, list):
+        return False
+    expected = sorted(_signature_for_entity_item(item) for item in entity.sequence_items)
+    actual = _build_payload_signatures(payload_items)
+    return actual is not None and actual == expected
+
+
+def _build_payload_signatures(payload_items: list[Any]) -> list[tuple[int, str | None, str | None]] | None:
+    signatures: list[tuple[int, str | None, str | None]] = []
+    for item in payload_items:
+        if not isinstance(item, dict):
+            return None
+        order = _parse_payload_order(item)
+        if order is None:
+            return None
+        signature = _signature_for_payload_item(order, item)
+        if signature is None:
+            return None
+        signatures.append(signature)
+    return sorted(signatures)
+
+
+def _parse_payload_order(item: dict[str, Any]) -> int | None:
+    raw_order = item.get("order")
+    if raw_order is None:
+        return None
+    try:
+        return int(raw_order)
+    except (TypeError, ValueError):
+        return None
+
+
+def _signature_for_payload_item(
+    order: int,
+    item: dict[str, Any],
+) -> tuple[int, str | None, str | None] | None:
+    execution_event_id = item.get("execution_event_id")
+    execution_event_group_id = item.get("execution_event_group_id")
+    has_event_id = isinstance(execution_event_id, str)
+    has_group_id = isinstance(execution_event_group_id, str)
+    if has_event_id == has_group_id:
+        return None
+    event_id = execution_event_id if has_event_id else None
+    group_id = execution_event_group_id if has_group_id else None
+    return (order, event_id, group_id)
+
+
+def _signature_for_entity_item(item: Any) -> tuple[int, str | None, str | None]:
+    execution_event_id = item.execution_event.id if item.execution_event else None
+    execution_event_group_id = item.execution_event_group.id if item.execution_event_group else None
+    return (item.order, execution_event_id, execution_event_group_id)
 
 
 def _delete_sequence_items(entity: Sequence) -> None:

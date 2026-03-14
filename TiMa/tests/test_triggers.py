@@ -115,3 +115,25 @@ def test_trigger_can_be_activated_and_deactivated_via_dedicated_endpoints(client
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["activated"] is True
+
+
+def test_timer_update_accepts_empty_weekdays(client):
+    create_execution_events(client)
+    create_sequences(client)
+    create_triggers(client)
+
+    resp = client.put(
+        "/api/triggers",
+        json={
+            "id": "test_id_1",
+            "name": "test_name_1",
+            "time": "00:00:20",
+            "weekdays": [],
+        },
+    )
+
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["recurrance_type"] == "TIMER"
+    assert data["weekdays"] is None
+    assert data["time"].startswith("00:00:20")

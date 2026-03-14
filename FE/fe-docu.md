@@ -135,6 +135,9 @@
     - id and name are required
 - Notes:
     - sequence items are generated from selected execution events first, then selected execution event groups
+    - for automatically created sequences, `execution events` and `execution event groups` relation inputs are disabled
+    - sequence maintenance shows a small muted note at the top explaining those relations are auto-managed and cannot be edited manually
+    - save payload omits `sequence_items` for automatically created sequences to avoid sending immutable data back unchanged
     - SequenceItem ordering is bucket-based (`order` starts at 1 and is normalized to contiguous values on every reorder)
     - dropping on an item card applies `match order` (the dragged item joins the same `order` bucket as the target)
     - dropping on a gap applies `insert position` (creates a standalone bucket at that position and shifts following buckets)

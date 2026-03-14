@@ -121,6 +121,10 @@ export const messages = {
       sequences: {
         title: 'Sequence overview',
         maintenanceTitle: 'Sequence maintenance',
+        notes: {
+          autoCreatedSequenceItemsReadonly:
+            'ExecutionEvents and ExecutionEventGroups are read-only for automatically created sequences because they are managed automatically from the linked entity.',
+        },
         fields: {
           id: 'id',
           status: 'Status',

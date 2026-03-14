@@ -83,3 +83,52 @@ def test_sequence_start_endpoint_returns_not_found_for_unknown_sequence(client):
     assert resp.status_code == 404
     assert resp.get_json()["error"] == "validationError"
     assert resp.get_json()["message"] == "Sequence not found"
+
+
+def test_update_automatically_created_sequence_accepts_unchanged_sequence_items(client):
+    create_execution_events(client)
+
+    get_resp = client.get("/api/sequences/test_id_1_default_sequence")
+    assert get_resp.status_code == 200
+    original = get_resp.get_json()
+
+    put_resp = client.put(
+        "/api/sequences",
+        json={
+            "id": "test_id_1_default_sequence",
+            "name": "renamed_default_sequence",
+            "sequence_items": [
+                {
+                    "order": item["order"],
+                    "execution_event_id": item["execution_event_id"],
+                }
+                for item in original["sequence_items"]
+            ],
+        },
+    )
+
+    assert put_resp.status_code == 200
+    data = put_resp.get_json()
+    assert data["name"] == "renamed_default_sequence"
+
+
+def test_update_automatically_created_sequence_rejects_changed_sequence_items(client):
+    create_execution_events(client)
+
+    put_resp = client.put(
+        "/api/sequences",
+        json={
+            "id": "test_id_1_default_sequence",
+            "name": "renamed_default_sequence",
+            "sequence_items": [
+                {
+                    "order": 1,
+                    "execution_event_id": "test_id_2",
+                }
+            ],
+        },
+    )
+
+    assert put_resp.status_code == 400
+    data = put_resp.get_json()
+    assert data["message"] == "sequence_items cannot be changed for automatically_created sequences"

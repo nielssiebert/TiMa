@@ -41,22 +41,24 @@ def _parse_date_from_string(value: str) -> date:
         return datetime.strptime(value, "%d.%m.%Y").date()
 
 
-def _normalize_weekday_list(value: list[Any]) -> str:
+def _normalize_weekday_list(value: list[Any]) -> str | None:
     days = [str(v).upper() for v in value]
+    if not days:
+        return None
     _validate_weekdays(days)
     return ",".join(days)
 
 
-def _normalize_weekday_string(value: str) -> str:
+def _normalize_weekday_string(value: str) -> str | None:
     days = [v.strip().upper() for v in value.split(",") if v.strip()]
+    if not days:
+        return None
     _validate_weekdays(days)
     return ",".join(days)
 
 
 def _validate_weekdays(days: list[str]) -> None:
     allowed = {"SU", "MO", "TU", "WE", "TH", "FR", "SA"}
-    if not days:
-        raise ValueError("weekdays must not be empty")
     invalid = [day for day in days if day not in allowed]
     if invalid:
         raise ValueError("weekdays must be one of SU, MO, TU, WE, TH, FR, SA")

@@ -11,7 +11,7 @@ export interface SequencePayload {
   id: string
   name: string
   trigger_ids: string[]
-  sequence_items: SequenceItemPayload[]
+  sequence_items?: SequenceItemPayload[]
 }
 
 type RuntimeAction = 'start' | 'stop'

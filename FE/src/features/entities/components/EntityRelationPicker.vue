@@ -17,6 +17,7 @@ const props = defineProps<{
   endpointPath: string
   findPath: string
   placeholderKey: string
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -47,12 +48,31 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => props.disabled,
+  (disabled) => {
+    if (!disabled) {
+      return
+    }
+    clearSearchTimer()
+    clearBlurTimer()
+    query.value = ''
+    suggestions.value = []
+    hasSearched.value = false
+    searchFailed.value = false
+  },
+  { immediate: true },
+)
+
 onUnmounted(() => {
   clearSearchTimer()
   clearBlurTimer()
 })
 
 function queueSearch(): void {
+  if (props.disabled) {
+    return
+  }
   clearSearchTimer()
   const normalizedTerm = normalizeSearchTerm(query.value)
   searchTimer = window.setTimeout(() => {
@@ -144,6 +164,9 @@ function parseOptions(payload: unknown): RelationOption[] {
 }
 
 function addItem(item: RelationOption): void {
+  if (props.disabled) {
+    return
+  }
   clearSearchTimer()
   clearBlurTimer()
   selectedItems.value = [...selectedItems.value, item]
@@ -155,10 +178,16 @@ function addItem(item: RelationOption): void {
 }
 
 function handleSuggestionMouseDown(item: RelationOption): void {
+  if (props.disabled) {
+    return
+  }
   addItem(item)
 }
 
 function removeItem(id: string): void {
+  if (props.disabled) {
+    return
+  }
   selectedItems.value = selectedItems.value.filter((item) => item.id !== id)
   emit('update:modelValue', selectedItems.value.map((entry) => entry.id))
 }
@@ -202,6 +231,7 @@ function normalizeSearchTerm(raw: string): string {
           text
           rounded
           severity="danger"
+          :disabled="props.disabled"
           :aria-label="t('common.remove')"
           @click="removeItem(item.id)"
         >
@@ -215,16 +245,18 @@ function normalizeSearchTerm(raw: string): string {
     <InputText
       v-model="query"
       class="relation-picker__input"
+      :disabled="props.disabled"
       :placeholder="t(placeholderKey)"
       @input="queueSearch"
       @blur="handleInputBlur"
     />
 
-    <ul v-if="suggestions.length" class="relation-picker__suggestions">
+    <ul v-if="suggestions.length && !props.disabled" class="relation-picker__suggestions">
       <li v-for="item in suggestions" :key="item.id">
         <button
           type="button"
           class="relation-picker__suggestion-btn"
+          :disabled="props.disabled"
           @mousedown.prevent="handleSuggestionMouseDown(item)"
         >
           {{ item.name }}
