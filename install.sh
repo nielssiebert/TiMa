@@ -504,9 +504,24 @@ if __name__ == "__main__":
 PY
 }
 
+apply_custom_icon() {
+  if [[ -z "$CUSTOM_ICON_FILE" ]]; then
+    return
+  fi
+
+  if [[ ! -f "$CUSTOM_ICON_FILE" ]]; then
+    die "Custom icon file not found: $CUSTOM_ICON_FILE"
+  fi
+
+  local icon_target="$REPO_DIR/FE/public/TiMa.png"
+  cp "$CUSTOM_ICON_FILE" "$icon_target"
+  log "Applied custom icon from $CUSTOM_ICON_FILE"
+}
+
 build_frontend_artifact() {
   local image_tag="${STACK_NAME}-fe-build:latest"
   apply_translation_replacements
+  apply_custom_icon
   log "Building frontend artifact image."
   docker build \
     -f "$REPO_DIR/FE/Dockerfile.build" \
@@ -572,6 +587,7 @@ main() {
   APP_PATH_PREFIX="$(normalize_path_prefix "$(prompt_default "App path prefix" "/tima")")"
   APP_TITLE="$(prompt_default "Browser tab title" "TiMa")"
   TRANSLATION_REPLACEMENT_FILE_RAW="$(prompt_optional "Translation replacement JSON file (optional)")"
+  CUSTOM_ICON_FILE_RAW="$(prompt_optional "Custom app icon file (optional)")"
   USE_OWN_NGINX="$(prompt_yes_no "Use your own nginx instance" "no")"
 
   ENABLE_LETSENCRYPT="no"
@@ -586,6 +602,7 @@ main() {
   APP_PATH_PREFIX="$(normalize_path_prefix "$APP_PATH_PREFIX")"
   API_URL_PREFIX="$(build_api_prefix "$APP_PATH_PREFIX")"
   TRANSLATION_REPLACEMENT_FILE="$(resolve_optional_file_path "$TRANSLATION_REPLACEMENT_FILE_RAW")"
+  CUSTOM_ICON_FILE="$(resolve_optional_file_path "$CUSTOM_ICON_FILE_RAW")"
   if [[ "$APP_PATH_PREFIX" == "/" ]]; then
     FRONTEND_BASE_PATH='/'
   else
@@ -631,6 +648,7 @@ NGINX_CONF_FILE=$NGINX_CONF_FILE
 API_URL_PREFIX=$API_URL_PREFIX
 CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
 TRANSLATION_REPLACEMENT_FILE=$TRANSLATION_REPLACEMENT_FILE
+CUSTOM_ICON_FILE=$CUSTOM_ICON_FILE
 VITE_APP_TITLE=$FRONTEND_APP_TITLE
 VITE_APP_PROFILE=$FRONTEND_APP_PROFILE
 VITE_PUBLIC_BASE_PATH=$FRONTEND_PUBLIC_BASE_PATH

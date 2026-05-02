@@ -226,6 +226,7 @@
 - API base URL remains configurable via `VITE_API_BASE_URL` and should match reverse-proxy API path (for example `/tima/api`).
 - Translation terminology can be adapted at deployment build time via `install.sh` using an optional JSON replacement file.
 - The deployment replacement flow rewrites string literals in `FE/src/core/i18n/messages.ts` before frontend artifact generation (runtime app logic remains unchanged).
+- Frontend icon can be customized at deployment build time via optional `install.sh` input (`Custom app icon file`), which replaces `FE/public/TiMa.png` before the artifact build.
 - Replacement JSON supports:
     - `string_replacements`: global substring replacements in translation strings
     - `key_replacements`: exact dotted-key overrides (for example `en.entities.sequences.fields.executionEvents`)

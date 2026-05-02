@@ -44,6 +44,7 @@ The script prompts for:
 - app path prefix (example: `/tima`)
 - browser tab title (used for frontend build)
 - optional translation replacement JSON file (applied to frontend messages at deployment build time)
+- optional custom app icon file (replaces `FE/public/TiMa.png` before frontend build)
 - whether to use your own nginx
 - whether to enable Let's Encrypt (if nginx is managed by script)
 
