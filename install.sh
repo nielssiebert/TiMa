@@ -216,7 +216,7 @@ yaml_escape() {
 initialize_env_settings() {
   local fe_env_file="$REPO_DIR/FE/.env.production"
 
-  FRONTEND_APP_TITLE="$(read_env_file_value "$fe_env_file" "VITE_APP_TITLE" "$APP_TITLE")"
+  FRONTEND_APP_TITLE="$APP_TITLE"
   FRONTEND_APP_PROFILE="$(read_env_file_value "$fe_env_file" "VITE_APP_PROFILE" "production")"
   FRONTEND_PUBLIC_BASE_PATH="$(normalize_frontend_public_base "$FRONTEND_BASE_PATH")"
   FRONTEND_API_BASE_URL="$API_URL_PREFIX"
@@ -342,6 +342,7 @@ render_template() {
 
   if [[ "$APP_PATH_PREFIX" == "/" ]]; then
     sed -i \
+      -e '/location = \/ {/,/}/d' \
       -e '/location =  {/,/}/d' \
       -e 's|location // {|location / {|g' \
       "$target_file"
@@ -399,36 +400,36 @@ def load_pairs(path: str):
     with open(path, "r", encoding="utf-8") as handle:
         data = json.load(handle)
 
-  string_replacements = data.get("string_replacements", {})
-  if string_replacements is None:
-    string_replacements = {}
-  if not isinstance(string_replacements, dict):
-    raise SystemExit("'string_replacements' must be an object when provided.")
+    string_replacements = data.get("string_replacements", {})
+    if string_replacements is None:
+        string_replacements = {}
+    if not isinstance(string_replacements, dict):
+        raise SystemExit("'string_replacements' must be an object when provided.")
 
-  key_replacements = data.get("key_replacements", {})
-  if key_replacements is None:
-    key_replacements = {}
-  if not isinstance(key_replacements, dict):
-    raise SystemExit("'key_replacements' must be an object when provided.")
+    key_replacements = data.get("key_replacements", {})
+    if key_replacements is None:
+        key_replacements = {}
+    if not isinstance(key_replacements, dict):
+        raise SystemExit("'key_replacements' must be an object when provided.")
 
-  if not string_replacements and not key_replacements:
-    raise SystemExit(
-      "Replacement file must contain a non-empty 'string_replacements' or 'key_replacements' object."
-    )
+    if not string_replacements and not key_replacements:
+        raise SystemExit(
+            "Replacement file must contain a non-empty 'string_replacements' or 'key_replacements' object."
+        )
 
-  pairs = []
-  for old, new in string_replacements.items():
-    if not isinstance(old, str) or not isinstance(new, str):
-      raise SystemExit("All keys/values in 'string_replacements' must be strings.")
-    pairs.append((old, new))
+    pairs = []
+    for old, new in string_replacements.items():
+        if not isinstance(old, str) or not isinstance(new, str):
+            raise SystemExit("All keys/values in 'string_replacements' must be strings.")
+        pairs.append((old, new))
 
-  normalized_key_replacements = {}
-  for key_path, new_text in key_replacements.items():
-    if not isinstance(key_path, str) or not isinstance(new_text, str):
-      raise SystemExit("All keys/values in 'key_replacements' must be strings.")
-    normalized_key_replacements[key_path] = new_text
+    normalized_key_replacements = {}
+    for key_path, new_text in key_replacements.items():
+        if not isinstance(key_path, str) or not isinstance(new_text, str):
+            raise SystemExit("All keys/values in 'key_replacements' must be strings.")
+        normalized_key_replacements[key_path] = new_text
 
-  return pairs, normalized_key_replacements
+    return pairs, normalized_key_replacements
 
 
 def replace_in_single_quoted_literals(source: str, pairs):
@@ -444,13 +445,13 @@ def replace_in_single_quoted_literals(source: str, pairs):
     return pattern.sub(_replace, source)
 
 
-  def escape_single_quoted(value: str) -> str:
+def escape_single_quoted(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
-  def apply_key_replacements(source: str, key_replacements):
+def apply_key_replacements(source: str, key_replacements):
     if not key_replacements:
-      return source
+        return source
 
     lines = source.splitlines(keepends=True)
     updated_lines = []
@@ -462,32 +463,32 @@ def replace_in_single_quoted_literals(source: str, pairs):
     )
 
     for line in lines:
-      stripped = line.strip()
+        stripped = line.strip()
 
-      if stripped.startswith("}") and object_stack:
-        object_stack.pop()
+        if stripped.startswith("}") and object_stack:
+            object_stack.pop()
 
-      value_match = value_pattern.match(line)
-      if value_match:
-        indent, key, _existing, suffix = value_match.groups()
-        full_path = ".".join(object_stack + [key])
-        replacement = key_replacements.get(full_path)
-        if replacement is not None:
-          escaped_replacement = escape_single_quoted(replacement)
-          line = f"{indent}{key}: '{escaped_replacement}'{suffix}"
+        value_match = value_pattern.match(line)
+        if value_match:
+            indent, key, _existing, suffix = value_match.groups()
+            full_path = ".".join(object_stack + [key])
+            replacement = key_replacements.get(full_path)
+            if replacement is not None:
+                escaped_replacement = escape_single_quoted(replacement)
+                line = f"{indent}{key}: '{escaped_replacement}'{suffix}"
 
-      updated_lines.append(line)
+        updated_lines.append(line)
 
-      object_match = object_start_pattern.match(line)
-      if object_match:
-        object_stack.append(object_match.group(2))
+        object_match = object_start_pattern.match(line)
+        if object_match:
+            object_stack.append(object_match.group(2))
 
     return "".join(updated_lines)
 
 
 def main():
     replacement_path, messages_path = sys.argv[1], sys.argv[2]
-  pairs, key_replacements = load_pairs(replacement_path)
+    pairs, key_replacements = load_pairs(replacement_path)
 
     with open(messages_path, "r", encoding="utf-8") as handle:
         source = handle.read()

@@ -25,6 +25,10 @@ server {
         return 301 __APP_PATH_PREFIX__/;
     }
 
+    location = / {
+        return 302 __APP_PATH_PREFIX__/;
+    }
+
     location __APP_PATH_PREFIX__/ {
         alias /usr/share/nginx/html/;
         try_files $uri $uri/ __APP_PATH_PREFIX__/index.html;
