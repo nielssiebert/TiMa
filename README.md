@@ -8,6 +8,9 @@ Use the docs below to jump into the part you need:
 - [Frontend documentation](./FE/fe-docu.md)
 - [Deployment guide](./deploy/README.md)
 
+To see TiMa in action visit one of the apps built upon like Letrain, a garden intirrigation control system:
+https://github.com/nielssiebert/letrain
+
 ## License
 
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License. See the LICENSE file for details.
