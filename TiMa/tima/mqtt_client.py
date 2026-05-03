@@ -123,10 +123,14 @@ class MqttClient:
     def _on_message(self, client, userdata, msg) -> None:
         topic = msg.topic
         payload = msg.payload.decode("utf-8")
-        if topic == self.app.config["MQTT_TOPIC_EXECUTION_ACKS"]:
-            self._handle_ack_message(payload)
-        elif topic == self.app.config["MQTT_TOPIC_FACTORS_VALUES"]:
-            self._handle_factor_value(payload)
+        try:
+            with self.app.app_context():
+                if topic == self.app.config["MQTT_TOPIC_EXECUTION_ACKS"]:
+                    self._handle_ack_message(payload)
+                elif topic == self.app.config["MQTT_TOPIC_FACTORS_VALUES"]:
+                    self._handle_factor_value(payload)
+        except Exception:
+            self.app.logger.exception("Failed to process MQTT message on topic %s", topic)
 
     def _handle_ack_message(self, payload: str) -> None:
         try:
