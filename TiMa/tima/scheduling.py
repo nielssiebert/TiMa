@@ -149,12 +149,15 @@ class SchedulingService:
         now: datetime,
         horizon: datetime,
     ) -> datetime | None:
-        target = self._resolve_target_time(trigger, now, horizon)
-        if target is None:
-            return None
         if trigger.trigger_type == TriggerType.START_AT_POINT_IN_TIME:
+            target = self._resolve_target_time(trigger, now, horizon)
+            if target is None:
+                return None
             return target
         duration = timedelta(milliseconds=self._sequence_duration_ms(sequence))
+        target = self._resolve_target_time(trigger, now, horizon + duration)
+        if target is None:
+            return None
         start = target - duration
         return start if now <= start <= horizon else None
 

@@ -52,6 +52,28 @@ def test_stop_trigger_start_time_subtracts_sequence_duration():
     assert start_at == target - timedelta(seconds=3)
 
 
+def test_stop_trigger_uses_sequence_start_window_not_stop_target_window():
+    service = SchedulingService()
+    now = datetime(2026, 2, 28, 21, 58, 0, tzinfo=timezone.utc)
+    horizon = now + timedelta(seconds=31)
+    target = now + timedelta(minutes=2)
+    trigger = Trigger(
+        id="trigger_stop_window",
+        name="trigger_stop_window",
+        trigger_type=TriggerType.STOP_AT_POINT_IN_TIME,
+        recurrance_type=RecurranceType.ONE_TIME,
+        date=target.date(),
+        time=target.time().replace(microsecond=0),
+        activated=True,
+    )
+    sequence = Sequence(id="seq_stop_window", name="seq_stop_window")
+    sequence.sequence_items = [_item("item_stop_window", 1, _event("event_stop_window", 120000, 1.0))]
+
+    start_at = service._compute_sequence_start(trigger, sequence, now, horizon)
+
+    assert start_at == now
+
+
 def test_timer_target_uses_next_interval_point():
     service = SchedulingService()
     now = datetime(2026, 2, 28, 0, 0, 21, tzinfo=timezone.utc)
