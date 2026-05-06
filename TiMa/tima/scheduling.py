@@ -3,8 +3,9 @@ from __future__ import annotations
 import math
 import threading
 import uuid
-from datetime import date, datetime, time, timedelta
-from typing import Iterable
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
+from typing import Iterable, TypedDict
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.base import JobLookupError
@@ -25,20 +26,28 @@ from .mqtt_client import mqtt_client
 _WEEKDAY_CODES = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
 
 
+class _SequenceRuntime(TypedDict):
+    running_events: dict[str, str]
+    pending_start_jobs: set[str]
+    pending_stop_jobs: set[str]
+
+
 class SchedulingService:
     def __init__(self) -> None:
         self._app = None
         self._scheduler: BackgroundScheduler | None = None
         self._tick_seconds = 1.0
+        self._timezone: tzinfo = timezone.utc
         self._runtime_lock = threading.Lock()
-        self._sequence_runtime: dict[str, dict[str, object]] = {}
+        self._sequence_runtime: dict[str, _SequenceRuntime] = {}
 
     def init_app(self, app) -> None:
         if not app.config.get("SCHEDULER_ENABLED", True):
             return
         self._app = app
         self._tick_seconds = float(app.config.get("SCHEDULER_TICK_SECONDS", 1))
-        scheduler = BackgroundScheduler()
+        self._timezone = self._resolve_timezone(app.config.get("SCHEDULER_TIMEZONE"))
+        scheduler = BackgroundScheduler(timezone=self._timezone)
         scheduler.add_job(
             self._tick,
             "interval",
@@ -101,7 +110,16 @@ class SchedulingService:
         return scheduled_any, scheduled_all
 
     def _current_time(self) -> datetime:
-        return datetime.now().astimezone()
+        return datetime.now(self._timezone)
+
+    def _resolve_timezone(self, value: str | None) -> tzinfo:
+        if value:
+            try:
+                return ZoneInfo(value)
+            except ZoneInfoNotFoundError as exc:
+                raise ValueError(f"Invalid SCHEDULER_TIMEZONE: {value}") from exc
+        local_timezone = datetime.now().astimezone().tzinfo
+        return local_timezone if local_timezone is not None else timezone.utc
 
     def _lookahead_delta(self) -> timedelta:
         return timedelta(seconds=self._tick_seconds + 1)
@@ -285,14 +303,14 @@ class SchedulingService:
                 "pending_stop_jobs": len(pending_stop),
             }
 
-    def _runtime_for(self, sequence_id: str) -> dict[str, object]:
+    def _runtime_for(self, sequence_id: str) -> _SequenceRuntime:
         runtime = self._sequence_runtime.get(sequence_id)
         if runtime is None:
-            runtime = {
-                "running_events": {},
-                "pending_start_jobs": set(),
-                "pending_stop_jobs": set(),
-            }
+            runtime = _SequenceRuntime(
+                running_events={},
+                pending_start_jobs=set(),
+                pending_stop_jobs=set(),
+            )
             self._sequence_runtime[sequence_id] = runtime
         return runtime
 
@@ -331,7 +349,7 @@ class SchedulingService:
             jobs = set(runtime["pending_start_jobs"]) | set(runtime["pending_stop_jobs"])
             return running, jobs
 
-    def _cleanup_runtime(self, sequence_id: str, runtime: dict[str, object]) -> None:
+    def _cleanup_runtime(self, sequence_id: str, runtime: _SequenceRuntime) -> None:
         if runtime["running_events"]:
             return
         if runtime["pending_start_jobs"] or runtime["pending_stop_jobs"]:

@@ -65,6 +65,7 @@ class Config:
 
     # Scheduler
     SCHEDULER_TICK_SECONDS: int = int(_get_env("SCHEDULER_TICK_SECONDS", "30"))
+    SCHEDULER_TIMEZONE: str | None = _get_env("SCHEDULER_TIMEZONE", _get_env("TZ"))
 
     # Message retention in days
     MESSAGE_RETENTION_DAYS: int = int(_get_env("MESSAGE_RETENTION_DAYS", "30"))

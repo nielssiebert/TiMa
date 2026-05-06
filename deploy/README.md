@@ -120,6 +120,12 @@ This allows multiple apps behind one host/port.
 
 SQLite lives in a Docker named volume (`tima_sqlite`) mapped to backend path `/data/tima.sqlite`.
 
+## Scheduler timezone
+
+Weekly and one-time triggers are evaluated in the backend runtime timezone.
+
+The deployment compose file sets `SCHEDULER_TIMEZONE` to `Europe/Berlin` by default. Override that in your generated `.env` if the installation should run in a different timezone.
+
 ## Resource profile
 
 Adjust limits in `deploy/docker-compose.rpi.yml` if needed.

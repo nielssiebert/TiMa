@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from tima.extensions import db
 from tima.models import (
@@ -75,6 +76,36 @@ def test_tick_windows_follow_scheduler_tick_seconds():
 
     assert service._lookahead_delta() == timedelta(seconds=3)
     assert service._recent_schedule_window() == timedelta(seconds=2.5)
+
+
+def test_init_app_uses_configured_scheduler_timezone(app, monkeypatch):
+    service = SchedulingService()
+    created: dict[str, object] = {}
+
+    class _SchedulerInitStub:
+        def __init__(self, *args, **kwargs) -> None:
+            _ = args
+            created["timezone"] = kwargs.get("timezone")
+
+        def add_job(self, *_args, **_kwargs) -> None:
+            return None
+
+        def start(self) -> None:
+            created["started"] = True
+
+    app.config.update(
+        SCHEDULER_ENABLED=True,
+        SCHEDULER_TICK_SECONDS=30,
+        SCHEDULER_TIMEZONE="Europe/Berlin",
+    )
+
+    monkeypatch.setattr("tima.scheduling.BackgroundScheduler", _SchedulerInitStub)
+
+    service.init_app(app)
+
+    assert created["started"] is True
+    assert created["timezone"] == ZoneInfo("Europe/Berlin")
+    assert service._current_time().tzinfo == ZoneInfo("Europe/Berlin")
 
 
 def test_recently_scheduled_window_check():
